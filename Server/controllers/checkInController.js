@@ -3,6 +3,7 @@ import Goal from '../models/Goal.js';
 import User from '../models/User.js';
 import { isQuarterWindowOpen } from '../utils/cycleUtils.js';
 import { computeProgressScore } from '../utils/progressUtils.js';
+import { notifyUser } from '../utils/notificationService.js';
 
 const normalizeCheckIn = (item) => {
   const goal = item.goalId && typeof item.goalId === 'object' ? item.goalId : null;
@@ -92,6 +93,17 @@ export const createCheckIn = async (req, res) => {
       populate: { path: 'employeeId', select: 'username fullName role' },
     });
 
+    const managerId = goal.employeeId?.managerId || (await User.findById(goal.employeeId).select('managerId').lean())?.managerId;
+    if (managerId) {
+      await notifyUser(managerId, {
+        type: 'checkin-saved',
+        title: 'New check-in submitted',
+        message: `${req.user.fullName || req.user.username} saved a ${quarter} check-in for ${goal.title}`,
+        link: '/dashboard',
+        metadata: { goalId: goal._id, checkInId: checkIn._id },
+      });
+    }
+
     return res.status(201).json({ message: 'Check-in saved', checkIn: normalizeCheckIn(checkIn) });
   } catch (error) {
     console.error('Create check-in error:', error);
@@ -170,6 +182,17 @@ export const reviewCheckIn = async (req, res) => {
 
     if (!checkIn) {
       return res.status(404).json({ message: 'Check-in not found' });
+    }
+
+    const goalOwnerId = checkIn.goalId?.employeeId;
+    if (goalOwnerId) {
+      await notifyUser(goalOwnerId, {
+        type: 'checkin-reviewed',
+        title: 'Check-in reviewed',
+        message: `${req.user.fullName || req.user.username} reviewed your ${checkIn.quarter} check-in.`,
+        link: '/dashboard',
+        metadata: { goalId: checkIn.goalId?._id, checkInId: checkIn._id },
+      });
     }
 
     return res.json({ message: 'Check-in reviewed', checkIn: normalizeCheckIn(checkIn) });

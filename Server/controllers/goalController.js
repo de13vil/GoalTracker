@@ -3,6 +3,7 @@ import Goal from '../models/Goal.js';
 import AuditLog from '../models/AuditLog.js';
 import User from '../models/User.js';
 import { isGoalSettingWindowOpen } from '../utils/cycleUtils.js';
+import { notifyUser, notifyUsers } from '../utils/notificationService.js';
 
 const allowedStatuses = ['Draft', 'Submitted', 'Approved', 'Rejected'];
 const allowedUoms = ['Numeric', 'Percentage', 'Timeline', 'Zero-based'];
@@ -187,6 +188,17 @@ export const createGoal = async (req, res) => {
       user: req.user,
       after: toSnapshot(goal),
     });
+
+    const manager = await User.findById(req.user.managerId).select('_id').lean();
+    if (manager) {
+      await notifyUser(manager._id, {
+        type: 'goal-created',
+        title: 'New goal created',
+        message: `${req.user.fullName || req.user.username} created a new goal: ${goal.title}`,
+        link: '/dashboard',
+        metadata: { goalId: goal._id },
+      });
+    }
 
     return res.status(201).json({ message: 'Goal created successfully', goal: normalizeGoal(goal) });
   } catch (error) {
@@ -393,6 +405,14 @@ export const createSharedGoals = async (req, res) => {
       createdGoals.push(goal);
     }
 
+    await notifyUsers(recipients.map((recipient) => recipient.employeeId), {
+      type: 'shared-goal-assigned',
+      title: 'Shared goal assigned',
+      message: `${req.user.fullName || req.user.username} assigned a shared goal: ${title}`,
+      link: '/dashboard',
+      metadata: { sharedGroupId },
+    });
+
     return res.status(201).json({
       message: 'Shared goals assigned successfully',
       sharedGroupId,
@@ -539,6 +559,37 @@ export const updateGoalStatus = async (req, res) => {
       after: toSnapshot(goal),
     });
 
+    const owner = await User.findById(goal.employeeId).select('_id managerId fullName username').lean();
+    if (isEmployee && owner?.managerId) {
+      await notifyUser(owner.managerId, {
+        type: 'goal-submitted',
+        title: 'Goal submitted for review',
+        message: `${owner.fullName || owner.username} submitted goal: ${goal.title}`,
+        link: '/dashboard',
+        metadata: { goalId: goal._id },
+      });
+    }
+
+    if (isPrivileged && status === 'Approved') {
+      await notifyUser(goal.employeeId, {
+        type: 'goal-approved',
+        title: 'Goal approved',
+        message: `Your goal "${goal.title}" has been approved and locked.`,
+        link: '/dashboard',
+        metadata: { goalId: goal._id },
+      });
+    }
+
+    if (isPrivileged && status === 'Rejected') {
+      await notifyUser(goal.employeeId, {
+        type: 'goal-reworked',
+        title: 'Goal returned for rework',
+        message: `Your goal "${goal.title}" was returned with feedback.`,
+        link: '/dashboard',
+        metadata: { goalId: goal._id },
+      });
+    }
+
     return res.json({ message: 'Goal updated successfully', goal: normalizeGoal(goal) });
   } catch (error) {
     console.error('Update goal error:', error);
@@ -574,6 +625,14 @@ export const unlockGoal = async (req, res) => {
       comment,
       before,
       after: toSnapshot(goal),
+    });
+
+    await notifyUser(goal.employeeId, {
+      type: 'goal-unlocked',
+      title: 'Goal unlocked',
+      message: `An admin unlocked your goal "${goal.title}" for correction.`,
+      link: '/dashboard',
+      metadata: { goalId: goal._id },
     });
 
     return res.json({ message: 'Goal unlocked successfully', goal: normalizeGoal(goal) });

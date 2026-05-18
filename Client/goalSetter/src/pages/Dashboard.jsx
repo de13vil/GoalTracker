@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Plus, Target, ClipboardList, TrendingUp, CheckCircle2, XCircle } from 'lucide-react';
+import { Bell, CheckCircle2, ClipboardList, LogOut, Plus, Target, TrendingUp, XCircle } from 'lucide-react';
 import { createGoal, createSharedGoals, editGoal, fetchGoals, unlockGoal, updateGoalStatus, fetchGoalAudit } from '../api/goals';
 import { fetchUsers, logoutUser, updateUserHierarchy } from '../api/auth';
 import { createAchievement, fetchAchievements } from '../api/achievements';
 import { createCheckIn, fetchCheckIns, reviewCheckIn } from '../api/checkins';
 import { downloadAchievementCsv, downloadGoalsCsv, fetchAnalyticsReport, fetchCompletionReport, fetchSummaryReport } from '../api/reports';
 import { fetchCycleSettings, updateCycleSettings } from '../api/cycles';
+import { fetchNotifications, markNotificationRead } from '../api/notifications';
 
 const initialForm = {
   title: '',
@@ -34,6 +35,7 @@ export default function Dashboard({ user, onLogout }) {
   const [goals, setGoals] = useState([]);
   const [achievements, setAchievements] = useState([]);
   const [checkIns, setCheckIns] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [report, setReport] = useState(null);
   const [analyticsReport, setAnalyticsReport] = useState(null);
   const [completionRows, setCompletionRows] = useState([]);
@@ -88,6 +90,10 @@ export default function Dashboard({ user, onLogout }) {
     const sum = completionRows.reduce((acc, row) => acc + Number(row.completionRate || 0), 0);
     return Math.round(sum / completionRows.length);
   }, [completionRows]);
+  const unreadNotificationCount = useMemo(
+    () => notifications.filter((item) => !item.readAt).length,
+    [notifications]
+  );
   const selectedAchievementGoalId = achievementForm.goalId || dashboardGoals[0]?.id || '';
   const selectedCheckInGoalId = checkInForm.goalId || dashboardGoals[0]?.id || '';
   const selectedAchievementGoal = dashboardGoals.find((goal) => goal.id === selectedAchievementGoalId);
@@ -199,6 +205,11 @@ export default function Dashboard({ user, onLogout }) {
     return data.settings || null;
   }, [isPrivileged]);
 
+  const loadNotifications = useCallback(async () => {
+    const data = await fetchNotifications();
+    return data.notifications || [];
+  }, []);
+
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -207,10 +218,11 @@ export default function Dashboard({ user, onLogout }) {
     const loadDashboardData = async () => {
       try {
         setLoading(true);
-        const [goalItems, achievementItems, checkInItems, reportData, completionData, analyticsData, userItems, cycleData] = await Promise.all([
+        const [goalItems, achievementItems, checkInItems, notificationItems, reportData, completionData, analyticsData, userItems, cycleData] = await Promise.all([
           loadGoals(),
           loadAchievements(),
           loadCheckIns(),
+          loadNotifications(),
           loadReport(),
           loadCompletionReport(),
           loadAnalyticsReport(),
@@ -220,6 +232,7 @@ export default function Dashboard({ user, onLogout }) {
         setGoals(goalItems);
         setAchievements(achievementItems);
         setCheckIns(checkInItems);
+        setNotifications(notificationItems);
         setReport(reportData);
         setCompletionRows(completionData || []);
         setAnalyticsReport(analyticsData || null);
@@ -233,7 +246,7 @@ export default function Dashboard({ user, onLogout }) {
     };
 
     loadDashboardData();
-  }, [loadAchievements, loadAnalyticsReport, loadCheckIns, loadCompletionReport, loadCycleSettings, loadGoals, loadReport, loadUsers, navigate, user]);
+  }, [loadAchievements, loadAnalyticsReport, loadCheckIns, loadCompletionReport, loadCycleSettings, loadGoals, loadNotifications, loadReport, loadUsers, navigate, user]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -621,6 +634,21 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
+  const handleNotificationClick = async (notification) => {
+    try {
+      if (!notification.readAt) {
+        await markNotificationRead(notification.id);
+      }
+      if (notification.link) {
+        navigate(notification.link);
+      }
+      const refreshed = await loadNotifications();
+      setNotifications(refreshed);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await logoutUser();
@@ -685,6 +713,47 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
           ))}
+        </section>
+
+        <section className="rounded-3xl border bg-white shadow-sm p-6">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                <Bell className="h-5 w-5 text-blue-600" />
+                Notifications
+              </h2>
+              <p className="text-slate-500 text-sm">Recent in-app events and reminders for your account.</p>
+            </div>
+            <div className="rounded-full bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700">
+              {unreadNotificationCount} unread
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {notifications.length === 0 ? (
+              <div className="rounded-xl border bg-slate-50 p-4 text-sm text-slate-500 xl:col-span-3">No notifications yet.</div>
+            ) : notifications.slice(0, 6).map((notification) => (
+              <button
+                key={notification.id}
+                type="button"
+                onClick={() => handleNotificationClick(notification)}
+                className={`text-left rounded-xl border p-4 transition-colors hover:border-blue-300 hover:bg-blue-50/60 ${notification.readAt ? 'bg-white border-slate-200' : 'bg-blue-50 border-blue-200'}`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-slate-900">{notification.title}</div>
+                    <div className="mt-1 text-sm text-slate-600">{notification.message}</div>
+                    <div className="mt-2 text-xs text-slate-400">
+                      {new Date(notification.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${notification.readAt ? 'bg-slate-100 text-slate-500' : 'bg-blue-600 text-white'}`}>
+                    {notification.readAt ? 'Read' : 'New'}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
         </section>
 
         {isPrivileged && activeView === 'review' && (

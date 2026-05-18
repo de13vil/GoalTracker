@@ -2,7 +2,7 @@ import { authHeaders } from './auth';
 
 export async function fetchCheckIns(goalId) {
   const query = goalId ? `?goalId=${goalId}` : '';
-  const res = await fetch(`http://localhost:5000/api/checkins${query}`, {
+  const res = await fetch(`https://goaltracker-zt4y.onrender.com/api/checkins${query}`, {
     headers: authHeaders(),
     credentials: 'omit',
   });
@@ -16,7 +16,7 @@ export async function fetchCheckIns(goalId) {
 }
 
 export async function createCheckIn(payload) {
-  const res = await fetch('http://localhost:5000/api/checkins', {
+  const res = await fetch('https://goaltracker-zt4y.onrender.com/api/checkins', {
     method: 'POST',
     credentials: 'omit',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
@@ -32,7 +32,7 @@ export async function createCheckIn(payload) {
 }
 
 export async function reviewCheckIn(checkInId, comment) {
-  const res = await fetch(`http://localhost:5000/api/checkins/${checkInId}/review`, {
+  const res = await fetch(`https://goaltracker-zt4y.onrender.com/api/checkins/${checkInId}/review`, {
     method: 'PATCH',
     credentials: 'omit',
     headers: authHeaders({ 'Content-Type': 'application/json' }),

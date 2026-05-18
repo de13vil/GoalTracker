@@ -1,5 +1,5 @@
 // API utility for authentication
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://goaltracker-zt4y.onrender.com/api';
 const TOKEN_KEY = 'goaltracker_tab_token';
 
 export function setSessionToken(token) {

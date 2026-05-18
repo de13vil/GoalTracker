@@ -1,7 +1,7 @@
 import { authHeaders } from './auth';
 
 export async function fetchNotifications() {
-  const res = await fetch('http://localhost:5000/api/notifications', {
+  const res = await fetch('https://goaltracker-zt4y.onrender.com/api/notifications', {
     headers: authHeaders(),
     credentials: 'omit',
   });
@@ -15,7 +15,7 @@ export async function fetchNotifications() {
 }
 
 export async function markNotificationRead(notificationId) {
-  const res = await fetch(`http://localhost:5000/api/notifications/${notificationId}/read`, {
+  const res = await fetch(`https://goaltracker-zt4y.onrender.com/api/notifications/${notificationId}/read`, {
     method: 'PATCH',
     headers: authHeaders(),
     credentials: 'omit',

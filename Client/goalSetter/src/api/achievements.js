@@ -2,7 +2,7 @@ import { authHeaders } from './auth';
 
 export async function fetchAchievements(goalId) {
   const query = goalId ? `?goalId=${goalId}` : '';
-  const res = await fetch(`http://localhost:5000/api/achievements${query}`, {
+  const res = await fetch(`https://goaltracker-zt4y.onrender.com/api/achievements${query}`, {
     headers: authHeaders(),
     credentials: 'omit',
   });
@@ -16,7 +16,7 @@ export async function fetchAchievements(goalId) {
 }
 
 export async function createAchievement(payload) {
-  const res = await fetch('http://localhost:5000/api/achievements', {
+  const res = await fetch('https://goaltracker-zt4y.onrender.com/api/achievements', {
     method: 'POST',
     credentials: 'omit',
     headers: authHeaders({ 'Content-Type': 'application/json' }),

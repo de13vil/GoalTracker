@@ -1,7 +1,7 @@
 import { authHeaders } from './auth';
 
 export async function fetchSummaryReport() {
-  const res = await fetch('http://localhost:5000/api/reports/summary', {
+  const res = await fetch('https://goaltracker-zt4y.onrender.com/api/reports/summary', {
     headers: authHeaders(),
     credentials: 'omit',
   });
@@ -15,7 +15,7 @@ export async function fetchSummaryReport() {
 }
 
 export async function fetchCompletionReport() {
-  const res = await fetch('http://localhost:5000/api/reports/completion', {
+  const res = await fetch('https://goaltracker-zt4y.onrender.com/api/reports/completion', {
     headers: authHeaders(),
     credentials: 'omit',
   });
@@ -29,7 +29,7 @@ export async function fetchCompletionReport() {
 }
 
 export async function fetchAnalyticsReport() {
-  const res = await fetch('http://localhost:5000/api/reports/analytics', {
+  const res = await fetch('https://goaltracker-zt4y.onrender.com/api/reports/analytics', {
     headers: authHeaders(),
     credentials: 'omit',
   });
@@ -43,7 +43,7 @@ export async function fetchAnalyticsReport() {
 }
 
 export async function downloadGoalsCsv() {
-  const res = await fetch('http://localhost:5000/api/reports/export/csv', {
+  const res = await fetch('https://goaltracker-zt4y.onrender.com/api/reports/export/csv', {
     headers: authHeaders(),
     credentials: 'omit',
   });
@@ -58,7 +58,7 @@ export async function downloadGoalsCsv() {
 }
 
 export async function downloadAchievementCsv() {
-  const res = await fetch('http://localhost:5000/api/reports/export/achievement-csv', {
+  const res = await fetch('https://goaltracker-zt4y.onrender.com/api/reports/export/achievement-csv', {
     headers: authHeaders(),
     credentials: 'omit',
   });

@@ -1,7 +1,7 @@
 import { authHeaders } from './auth';
 
 export async function fetchGoals() {
-  const res = await fetch('http://localhost:5000/api/goals', {
+  const res = await fetch('https://goaltracker-zt4y.onrender.com/api/goals', {
     headers: authHeaders(),
     credentials: 'omit',
   });
@@ -12,7 +12,7 @@ export async function fetchGoals() {
 }
 
 export async function createGoal(goalData) {
-  const res = await fetch('http://localhost:5000/api/goals', {
+  const res = await fetch('https://goaltracker-zt4y.onrender.com/api/goals', {
     method: 'POST',
     credentials: 'omit',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
@@ -28,7 +28,7 @@ export async function createGoal(goalData) {
 }
 
 export async function updateGoalStatus(goalId, status, comment = '', payload = {}) {
-  const res = await fetch(`http://localhost:5000/api/goals/${goalId}/status`, {
+  const res = await fetch(`https://goaltracker-zt4y.onrender.com/api/goals/${goalId}/status`, {
     method: 'PATCH',
     credentials: 'omit',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
@@ -44,7 +44,7 @@ export async function updateGoalStatus(goalId, status, comment = '', payload = {
 }
 
 export async function editGoal(goalId, payload) {
-  const res = await fetch(`http://localhost:5000/api/goals/${goalId}`, {
+  const res = await fetch(`https://goaltracker-zt4y.onrender.com/api/goals/${goalId}`, {
     method: 'PATCH',
     credentials: 'omit',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
@@ -60,7 +60,7 @@ export async function editGoal(goalId, payload) {
 }
 
 export async function createSharedGoals(payload) {
-  const res = await fetch('http://localhost:5000/api/goals/shared', {
+  const res = await fetch('https://goaltracker-zt4y.onrender.com/api/goals/shared', {
     method: 'POST',
     credentials: 'omit',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
@@ -76,7 +76,7 @@ export async function createSharedGoals(payload) {
 }
 
 export async function unlockGoal(goalId, comment = '') {
-  const res = await fetch(`http://localhost:5000/api/goals/${goalId}/unlock`, {
+  const res = await fetch(`https://goaltracker-zt4y.onrender.com/api/goals/${goalId}/unlock`, {
     method: 'PATCH',
     credentials: 'omit',
     headers: authHeaders({ 'Content-Type': 'application/json' }),
@@ -92,7 +92,7 @@ export async function unlockGoal(goalId, comment = '') {
 }
 
 export async function fetchGoalAudit(goalId) {
-  const res = await fetch(`http://localhost:5000/api/goals/${goalId}/audit`, {
+  const res = await fetch(`https://goaltracker-zt4y.onrender.com/api/goals/${goalId}/audit`, {
     headers: authHeaders(),
     credentials: 'omit',
   });

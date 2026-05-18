@@ -1,7 +1,7 @@
 import { authHeaders } from './auth';
 
 export async function fetchCycleSettings() {
-  const res = await fetch('http://localhost:5000/api/cycles', {
+  const res = await fetch('https://goaltracker-zt4y.onrender.com/api/cycles', {
     headers: authHeaders(),
     credentials: 'omit',
   });
@@ -15,7 +15,7 @@ export async function fetchCycleSettings() {
 }
 
 export async function updateCycleSettings(payload) {
-  const res = await fetch('http://localhost:5000/api/cycles', {
+  const res = await fetch('https://goaltracker-zt4y.onrender.com/api/cycles', {
     method: 'PUT',
     credentials: 'omit',
     headers: authHeaders({ 'Content-Type': 'application/json' }),

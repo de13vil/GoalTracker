@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "seed": "node scripts/seedDemoUsers.js",
+    "reset-seed": "node scripts/resetDemoUsers.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

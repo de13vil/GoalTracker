@@ -7,6 +7,7 @@ const roles = ["Employee", "Manager", "Admin"];
 
 
 export default function Register({ onLogin }) {
+  const isDemo = (import.meta && import.meta.env && import.meta.env.DEV) || new URLSearchParams(window.location.search).has('demo');
   const [formData, setFormData] = useState({ fullName: "", email: "", username: "", role: "Employee", password: "", confirmPassword: "", registrationKey: "", otp: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -99,6 +100,11 @@ export default function Register({ onLogin }) {
           </div>
           <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">Create Account</h1>
           <p className="text-center text-gray-600 mb-8">Join GoalTracker today</p>
+          {isDemo && (
+            <div className="mb-4 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm text-center">
+              Demo mode: seeded demo accounts are available for evaluation (see DEMO.md). Use ?demo=true in the URL to show this message on other hosts.
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!otpStep && (

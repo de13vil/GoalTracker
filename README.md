@@ -1,3 +1,34 @@
+# GoalTracker
+
+Quick-start for hackathon evaluators.
+
+This repository contains a Goal Setting & Tracking portal (React + Node + MongoDB).
+
+Demo: seeded demo accounts and a seeder script are provided for evaluation. See `DEMO.md` for journeys and credentials.
+
+Run locally
+1. Backend
+```bash
+cd Server
+npm install
+# create Server/.env with MONGO_URI and JWT_SECRET
+npm run seed      # seeds demo_admin/demo_manager/demo_employee
+npm run dev
+```
+2. Frontend (in another terminal)
+```bash
+cd Client/goalSetter
+npm install
+npm run dev
+```
+
+Notes
+- The `DEMO.md` file contains demo credentials and short user journeys.
+- After evaluation, remove demo accounts with `cd Server && npm run reset-seed`.
+- Do not commit real secrets to the repository; use `Server/.env` for environment variables.
+
+Support
+- If you need a hosted demo URL or additional instructions, contact the project owner.
 # GoalTracker - Goal Setting & Tracking Portal
 
 Web-based portal for end-to-end goal lifecycle management across Employee, Manager, and Admin/HR roles.

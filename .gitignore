@@ -60,3 +60,12 @@ desktop.ini
 **/temp/
 **/*.local
 .vercel
+
+# Submission artifacts (do not track)
+submission/
+GoalTracker_Submission.pdf
+Submission.md
+architecture.jpg
+architecture.png
+architecture.mmd
+generate_submission_assets.js

@@ -98,6 +98,7 @@ export default function Dashboard({ user, onLogout }) {
   const selectedCheckInGoalId = checkInForm.goalId || dashboardGoals[0]?.id || '';
   const selectedAchievementGoal = dashboardGoals.find((goal) => goal.id === selectedAchievementGoalId);
   const selectedCheckInGoal = dashboardGoals.find((goal) => goal.id === selectedCheckInGoalId);
+  const getUserId = (item) => String(item?.id || item?._id || '');
   const eligibleSharedUsers = users.filter((item) => item.role === 'Employee');
   const goalSheetWeightage = useMemo(() => {
     if (!isEmployee) return 0;
@@ -509,10 +510,23 @@ export default function Dashboard({ user, onLogout }) {
     setSuccess('');
 
     try {
+      if (!sharedGoalForm.title.trim()) {
+        setError('Shared goal title is required');
+        return;
+      }
+
       const recipients = sharedGoalRecipients.map((employeeId) => ({
         employeeId,
         weightage: Number(sharedGoalWeights[employeeId] || 0),
       }));
+
+      const invalidRecipient = recipients.find(
+        (recipient) => Number.isNaN(recipient.weightage) || recipient.weightage < 10 || recipient.weightage > 100
+      );
+      if (invalidRecipient) {
+        setError('Each selected recipient must have a weightage between 10 and 100');
+        return;
+      }
 
       if (!sharedGoalForm.primaryOwnerId || recipients.length === 0) {
         setError('Select recipients and a primary owner for the shared goal');
@@ -1241,9 +1255,9 @@ export default function Dashboard({ user, onLogout }) {
                   >
                     <option value="">Primary owner</option>
                     {eligibleSharedUsers
-                      .filter((item) => sharedGoalRecipients.includes(item._id))
+                      .filter((item) => sharedGoalRecipients.includes(getUserId(item)))
                       .map((item) => (
-                        <option key={item._id} value={item._id}>{item.fullName || item.username}</option>
+                        <option key={getUserId(item)} value={getUserId(item)}>{item.fullName || item.username}</option>
                       ))}
                   </select>
                 </div>
@@ -1259,20 +1273,20 @@ export default function Dashboard({ user, onLogout }) {
                     {eligibleSharedUsers.length === 0 ? (
                       <div className="text-sm text-slate-500">No eligible employees found in this scope.</div>
                     ) : eligibleSharedUsers.map((item) => (
-                      <label key={item._id} className="flex items-center gap-3 rounded-lg border px-3 py-2">
+                      <label key={getUserId(item)} className="flex items-center gap-3 rounded-lg border px-3 py-2">
                         <input
                           type="checkbox"
-                          checked={sharedGoalRecipients.includes(item._id)}
-                          onChange={() => toggleSharedGoalRecipient(item._id)}
+                          checked={sharedGoalRecipients.includes(getUserId(item))}
+                          onChange={() => toggleSharedGoalRecipient(getUserId(item))}
                         />
                         <span className="min-w-0 flex-1 text-sm font-medium text-slate-700">{item.fullName || item.username}</span>
                         <input
                           type="number"
                           min="10"
                           max="100"
-                          disabled={!sharedGoalRecipients.includes(item._id)}
-                          value={sharedGoalWeights[item._id] || ''}
-                          onChange={(e) => setSharedGoalWeights((prev) => ({ ...prev, [item._id]: e.target.value }))}
+                          disabled={!sharedGoalRecipients.includes(getUserId(item))}
+                          value={sharedGoalWeights[getUserId(item)] || ''}
+                          onChange={(e) => setSharedGoalWeights((prev) => ({ ...prev, [getUserId(item)]: e.target.value }))}
                           className="w-24 rounded-md border px-2 py-1 text-sm disabled:bg-slate-100"
                           placeholder="%"
                         />
@@ -1561,7 +1575,7 @@ export default function Dashboard({ user, onLogout }) {
                   >
                     <option value="">Select user</option>
                     {users.map((item) => (
-                      <option key={item._id} value={item._id}>{item.fullName || item.username}</option>
+                      <option key={getUserId(item)} value={getUserId(item)}>{item.fullName || item.username}</option>
                     ))}
                   </select>
                   <input
@@ -1577,7 +1591,7 @@ export default function Dashboard({ user, onLogout }) {
                   >
                     <option value="">No manager</option>
                     {users.filter((item) => item.role === 'Manager' || item.role === 'Admin').map((item) => (
-                      <option key={item._id} value={item._id}>{item.fullName || item.username}</option>
+                      <option key={getUserId(item)} value={getUserId(item)}>{item.fullName || item.username}</option>
                     ))}
                   </select>
                 </div>

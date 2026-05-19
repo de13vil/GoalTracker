@@ -43,6 +43,7 @@ export default function Dashboard({ user, onLogout }) {
   const [saving, setSaving] = useState(false);
   const [savingAchievement, setSavingAchievement] = useState(false);
   const [savingCheckIn, setSavingCheckIn] = useState(false);
+  const [savingSharedGoals, setSavingSharedGoals] = useState(false);
   const [reviewingCheckInId, setReviewingCheckInId] = useState('');
   const [actioningGoalId, setActioningGoalId] = useState('');
   const [activeView, setActiveView] = useState(user?.role === 'Employee' ? 'goals' : 'review');
@@ -508,6 +509,7 @@ export default function Dashboard({ user, onLogout }) {
     e.preventDefault();
     setError('');
     setSuccess('');
+    setSavingSharedGoals(true);
 
     try {
       if (!sharedGoalForm.title.trim()) {
@@ -562,6 +564,8 @@ export default function Dashboard({ user, onLogout }) {
       setGoals(goalItems);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setSavingSharedGoals(false);
     }
   };
 
@@ -1198,6 +1202,9 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
+              {error && <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
+              {success && <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700">{success}</div>}
+
               <form className="mt-6 rounded-xl border bg-white p-4 space-y-3" onSubmit={handleSharedGoalSubmit}>
                 <h3 className="font-semibold text-slate-900">Assign Shared Goal</h3>
                 <input
@@ -1294,8 +1301,12 @@ export default function Dashboard({ user, onLogout }) {
                     ))}
                   </div>
                 </div>
-                <button type="submit" className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800">
-                  Create Shared Goals
+                <button
+                  type="submit"
+                  disabled={savingSharedGoals}
+                  className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+                >
+                  {savingSharedGoals ? 'Creating...' : 'Create Shared Goals'}
                 </button>
               </form>
             </div>

@@ -8,6 +8,7 @@ import { notifyUser, notifyUsers } from '../utils/notificationService.js';
 const allowedStatuses = ['Draft', 'Submitted', 'Approved', 'Rejected', 'Archived'];
 const allowedUoms = ['Numeric', 'Percentage', 'Timeline', 'Zero-based'];
 const allowedMetricDirections = ['Min', 'Max'];
+const sheetCountedStatuses = ['Archived', 'Rejected'];
 
 const normalizeGoal = (goal) => ({
   id: goal._id,
@@ -100,7 +101,7 @@ const validateGoalLimitAndWeight = async (employeeId, incomingWeightage, ignoreG
 
   const filter = { employeeId };
   if (ignoreGoalId) filter._id = { $ne: ignoreGoalId };
-  filter.status = { $ne: 'Archived' };
+  filter.status = { $nin: sheetCountedStatuses };
 
   const existingGoals = await Goal.find(filter);
 
@@ -261,7 +262,7 @@ export const updateGoal = async (req, res) => {
         return res.status(400).json({ message: 'Minimum weightage per individual goal is 10%' });
       }
 
-      const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $ne: 'Archived' } });
+      const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $nin: sheetCountedStatuses } });
       const totalWeightage = otherGoals.reduce((sum, item) => sum + Number(item.weightage || 0), 0);
       if (totalWeightage + normalizedWeightage > 100) {
         return res.status(400).json({ message: "This employee's goal sheet cannot exceed 100% weightage" });
@@ -305,7 +306,7 @@ export const updateGoal = async (req, res) => {
           return res.status(400).json({ message: 'Minimum weightage per individual goal is 10%' });
         }
 
-        const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $ne: 'Archived' } });
+        const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $nin: sheetCountedStatuses } });
         const totalWeightage = otherGoals.reduce((sum, item) => sum + Number(item.weightage || 0), 0);
         if (totalWeightage + normalizedWeightage > 100) {
           return res.status(400).json({ message: "This employee's goal sheet cannot exceed 100% weightage" });
@@ -345,7 +346,7 @@ export const updateGoal = async (req, res) => {
           return res.status(400).json({ message: 'Minimum weightage per individual goal is 10%' });
         }
 
-        const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $ne: 'Archived' } });
+        const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $nin: sheetCountedStatuses } });
         const totalWeightage = otherGoals.reduce((sum, item) => sum + Number(item.weightage || 0), 0);
         if (totalWeightage + normalizedWeightage > 100) {
           return res.status(400).json({ message: "This employee's goal sheet cannot exceed 100% weightage" });
@@ -618,7 +619,7 @@ export const updateGoalStatus = async (req, res) => {
         return res.status(403).json({ message: 'Employees can only submit goals' });
       }
 
-      const employeeGoals = await Goal.find({ employeeId: req.user.id, status: { $ne: 'Archived' } });
+      const employeeGoals = await Goal.find({ employeeId: req.user.id, status: { $nin: sheetCountedStatuses } });
       const totalWeightage = employeeGoals.reduce((sum, item) => sum + Number(item.weightage || 0), 0);
       if (totalWeightage !== 100) {
         const delta = 100 - totalWeightage;
@@ -664,7 +665,7 @@ export const updateGoalStatus = async (req, res) => {
           return res.status(400).json({ message: 'Minimum weightage per individual goal is 10%' });
         }
 
-        const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $ne: 'Archived' } });
+        const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $nin: sheetCountedStatuses } });
         const totalWeightage = otherGoals.reduce((sum, item) => sum + Number(item.weightage || 0), 0);
         if (totalWeightage + normalizedWeightage > 100) {
           return res.status(400).json({ message: "This employee's goal sheet cannot exceed 100% weightage" });
@@ -674,7 +675,7 @@ export const updateGoalStatus = async (req, res) => {
       }
 
       if (status === 'Approved') {
-        const allOtherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $ne: 'Archived' } });
+        const allOtherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $nin: sheetCountedStatuses } });
         const projectedTotalWeightage = allOtherGoals.reduce((sum, item) => sum + Number(item.weightage || 0), 0) + Number(goal.weightage || 0);
         if (projectedTotalWeightage !== 100) {
           return res.status(400).json({

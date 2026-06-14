@@ -5,19 +5,20 @@ import CheckIn from '../models/CheckIn.js';
 import { computeProgressScore } from '../utils/progressUtils.js';
 
 const quarters = ['Q1', 'Q2', 'Q3', 'Q4'];
+const hiddenGoalStatuses = ['Archived', 'Rejected'];
 
 const getReportScope = async (user) => {
   if (user.role === 'Admin') {
     const users = await User.find().select('_id').lean();
     const userIds = users.map((item) => item._id);
-    return { userFilter: {}, goalFilter: { employeeId: { $in: userIds }, status: { $ne: 'Archived' } } };
+    return { userFilter: {}, goalFilter: { employeeId: { $in: userIds }, status: { $nin: hiddenGoalStatuses } } };
   }
 
   const team = await User.find({ managerId: user.id }).select('_id').lean();
   const teamIds = team.map((item) => item._id);
   return {
     userFilter: { _id: { $in: teamIds } },
-    goalFilter: { employeeId: { $in: teamIds }, status: { $ne: 'Archived' } },
+    goalFilter: { employeeId: { $in: teamIds }, status: { $nin: hiddenGoalStatuses } },
   };
 };
 

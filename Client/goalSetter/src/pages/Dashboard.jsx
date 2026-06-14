@@ -106,10 +106,14 @@ export default function Dashboard({ user, onLogout }) {
   const selectedCheckInGoal = dashboardGoals.find((goal) => goal.id === selectedCheckInGoalId);
   const getUserId = (item) => String(item?.id || item?._id || '');
   const eligibleSharedUsers = users.filter((item) => item.role === 'Employee');
+  const countedSheetGoals = useMemo(
+    () => dashboardGoals.filter((goal) => !['Archived', 'Rejected'].includes(goal.status)),
+    [dashboardGoals]
+  );
   const goalSheetWeightage = useMemo(() => {
     if (!isEmployee) return 0;
-    return dashboardGoals.reduce((sum, goal) => sum + Number(goal.weightage || 0), 0);
-  }, [dashboardGoals, isEmployee]);
+    return countedSheetGoals.reduce((sum, goal) => sum + Number(goal.weightage || 0), 0);
+  }, [countedSheetGoals, isEmployee]);
   const goalSheetDelta = 100 - goalSheetWeightage;
   const canSubmitGoalSheet = goalSheetWeightage === 100;
   const newGoalWeightage = Number(form.weightage || 0);
@@ -117,7 +121,7 @@ export default function Dashboard({ user, onLogout }) {
   const canCreateMoreGoals = !isEmployee || createGoalRemaining >= 10;
   const newGoalExceedsRemaining = isEmployee && form.weightage !== '' && newGoalWeightage > createGoalRemaining;
   const projectedGoalSheetWeightage = goalSheetWeightage + (Number.isNaN(newGoalWeightage) ? 0 : newGoalWeightage);
-  const employeeGoalCount = isEmployee ? dashboardGoals.length : 0;
+  const employeeGoalCount = isEmployee ? countedSheetGoals.length : 0;
   const canCreateGoalCount = !isEmployee || employeeGoalCount < 8;
 
   const roleMeta = isEmployee
@@ -849,7 +853,7 @@ export default function Dashboard({ user, onLogout }) {
   return (
     <div className="min-h-screen bg-[radial-gradient(1200px_450px_at_20%_-10%,#dbeafe_0%,rgba(219,234,254,0)_60%),radial-gradient(1200px_500px_at_80%_-20%,#d1fae5_0%,rgba(209,250,229,0)_65%),#f8fafc]">
       <header className="border-b border-slate-200/70 bg-white/85 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-[1700px] mx-auto px-5 md:px-8 py-4 flex items-center justify-between gap-4">
+        <div className="max-w-425 mx-auto px-5 md:px-8 py-4 flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-black text-slate-900">{roleMeta.title}</h1>
             <p className="text-sm text-slate-500">{roleMeta.subtitle}</p>
@@ -871,7 +875,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       </header>
 
-      <main className="max-w-[1700px] mx-auto px-5 md:px-8 py-8 space-y-8">
+      <main className="max-w-425 mx-auto px-5 md:px-8 py-8 space-y-8">
         <section className="rounded-[28px] border border-slate-200 bg-white/90 p-4 shadow-sm">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             {roleTabs.map((tab) => {
@@ -899,7 +903,7 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </section>
 
-        <section className="rounded-[32px] border border-slate-200 bg-white shadow-sm p-6 md:p-8">
+        <section className="rounded-4xl border border-slate-200 bg-white shadow-sm p-6 md:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Current page</p>

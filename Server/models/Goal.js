@@ -45,9 +45,10 @@ const goalSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['Draft', 'Submitted', 'Approved', 'Rejected'],
+      enum: ['Draft', 'Submitted', 'Approved', 'Rejected', 'Archived'],
       default: 'Draft',
     },
+    archivedAt: Date,
     approvedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

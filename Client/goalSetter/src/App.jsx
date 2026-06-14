@@ -5,6 +5,11 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ForgotPassword from "./pages/ForgotPassword";
+import GoalsPage from "./pages/dashboard/GoalsPage";
+import AchievementsPage from "./pages/dashboard/AchievementsPage";
+import CheckInsPage from "./pages/dashboard/CheckInsPage";
+import ReviewPage from "./pages/dashboard/ReviewPage";
+import ReportsPage from "./pages/dashboard/ReportsPage";
 import { getCurrentUser } from "./api/auth";
 
 function App() {
@@ -43,7 +48,17 @@ function App() {
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/register" element={<Register onLogin={handleLogin} />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/dashboard" element={user ? <Dashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />} />
+        <Route path="/dashboard" element={user ? <Dashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}>
+          <Route
+            index
+            element={user?.role === 'Employee' ? <Navigate to="goals" replace /> : <Navigate to="reviews" replace />}
+          />
+          <Route path="goals" element={<GoalsPage />} />
+          <Route path="achievements" element={<AchievementsPage />} />
+          <Route path="checkins" element={<CheckInsPage />} />
+          <Route path="reviews" element={<ReviewPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+        </Route>
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>

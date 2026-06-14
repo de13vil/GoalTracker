@@ -10,14 +10,14 @@ const getReportScope = async (user) => {
   if (user.role === 'Admin') {
     const users = await User.find().select('_id').lean();
     const userIds = users.map((item) => item._id);
-    return { userFilter: {}, goalFilter: { employeeId: { $in: userIds } } };
+    return { userFilter: {}, goalFilter: { employeeId: { $in: userIds }, status: { $ne: 'Archived' } } };
   }
 
   const team = await User.find({ managerId: user.id }).select('_id').lean();
   const teamIds = team.map((item) => item._id);
   return {
     userFilter: { _id: { $in: teamIds } },
-    goalFilter: { employeeId: { $in: teamIds } },
+    goalFilter: { employeeId: { $in: teamIds }, status: { $ne: 'Archived' } },
   };
 };
 

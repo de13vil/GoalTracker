@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import { isGoalSettingWindowOpen } from '../utils/cycleUtils.js';
 import { notifyUser, notifyUsers } from '../utils/notificationService.js';
 
-const allowedStatuses = ['Draft', 'Submitted', 'Approved', 'Rejected'];
+const allowedStatuses = ['Draft', 'Submitted', 'Approved', 'Rejected', 'Archived'];
 const allowedUoms = ['Numeric', 'Percentage', 'Timeline', 'Zero-based'];
 const allowedMetricDirections = ['Min', 'Max'];
 
@@ -23,6 +23,7 @@ const normalizeGoal = (goal) => ({
   status: goal.status,
   approvedBy: goal.approvedBy,
   approvalDate: goal.approvalDate,
+  archivedAt: goal.archivedAt,
   isLocked: goal.isLocked,
   lockedAt: goal.lockedAt,
   lockedBy: goal.lockedBy,
@@ -43,6 +44,7 @@ const toSnapshot = (goal) => ({
   deadline: goal.deadline,
   weightage: goal.weightage,
   status: goal.status,
+  archivedAt: goal.archivedAt,
   isLocked: goal.isLocked,
   approvedBy: goal.approvedBy,
   approvalDate: goal.approvalDate,
@@ -98,6 +100,7 @@ const validateGoalLimitAndWeight = async (employeeId, incomingWeightage, ignoreG
 
   const filter = { employeeId };
   if (ignoreGoalId) filter._id = { $ne: ignoreGoalId };
+  filter.status = { $ne: 'Archived' };
 
   const existingGoals = await Goal.find(filter);
 
@@ -235,15 +238,22 @@ export const updateGoal = async (req, res) => {
       return res.status(400).json({ message: 'Goal is locked. Only Admin can unlock before edits.' });
     }
 
-    if (isOwner && req.user.role === 'Employee' && !['Draft', 'Rejected'].includes(goal.status)) {
-      return res.status(400).json({ message: 'Employees can edit goals only before submission or after rework' });
-    }
+    // Employees may not edit most fields once submitted/approved, but they should
+    // always be able to adjust their `weightage` to free up allocation. We'll
+    // enforce field-level restrictions below instead of blocking early.
 
     const before = toSnapshot(goal);
 
-    if (goal.isShared && isOwner && req.user.role === 'Employee') {
+    const isOwnerEmployee = isOwner && req.user.role === 'Employee';
+
+    // Case A: Shared goal recipient — allow only weightage edits, and only before submission/rework is closed.
+    if (goal.isShared && isOwnerEmployee) {
+      if (!['Draft', 'Rejected'].includes(goal.status)) {
+        return res.status(400).json({ message: 'Recipients can adjust weightage only before submission or after rework' });
+      }
+
       if (weightage === undefined) {
-        return res.status(400).json({ message: 'For shared goals, employees can adjust weightage only' });
+        return res.status(400).json({ message: 'For shared goals, recipients may adjust weightage only' });
       }
 
       const normalizedWeightage = Number(weightage);
@@ -251,14 +261,20 @@ export const updateGoal = async (req, res) => {
         return res.status(400).json({ message: 'Minimum weightage per individual goal is 10%' });
       }
 
-      const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id } });
+      const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $ne: 'Archived' } });
       const totalWeightage = otherGoals.reduce((sum, item) => sum + Number(item.weightage || 0), 0);
       if (totalWeightage + normalizedWeightage > 100) {
         return res.status(400).json({ message: "This employee's goal sheet cannot exceed 100% weightage" });
       }
 
       goal.weightage = normalizedWeightage;
-    } else {
+    } else if (isOwnerEmployee) {
+      // Case B: Non-shared owner (employee). Allow edits only when Draft or Rejected.
+      if (!['Draft', 'Rejected'].includes(goal.status)) {
+        return res.status(400).json({ message: 'Employees can edit goals only before submission or after rework' });
+      }
+
+      // allow full edits below
       if (title !== undefined) goal.title = title;
       if (description !== undefined) goal.description = description;
       if (thrustArea !== undefined) goal.thrustArea = thrustArea;
@@ -289,7 +305,47 @@ export const updateGoal = async (req, res) => {
           return res.status(400).json({ message: 'Minimum weightage per individual goal is 10%' });
         }
 
-        const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id } });
+        const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $ne: 'Archived' } });
+        const totalWeightage = otherGoals.reduce((sum, item) => sum + Number(item.weightage || 0), 0);
+        if (totalWeightage + normalizedWeightage > 100) {
+          return res.status(400).json({ message: "This employee's goal sheet cannot exceed 100% weightage" });
+        }
+
+        goal.weightage = normalizedWeightage;
+      }
+    } else {
+      // Case C: Privileged users (Manager/Admin) or other allowed managers — allow full edits
+      if (title !== undefined) goal.title = title;
+      if (description !== undefined) goal.description = description;
+      if (thrustArea !== undefined) goal.thrustArea = thrustArea;
+      if (uom !== undefined) {
+        if (!allowedUoms.includes(uom)) {
+          return res.status(400).json({ message: 'Invalid UoM selected' });
+        }
+        goal.uom = uom;
+      }
+      if (metricDirection !== undefined) {
+        if (!allowedMetricDirections.includes(metricDirection)) {
+          return res.status(400).json({ message: 'Invalid metric direction selected' });
+        }
+        goal.metricDirection = metricDirection;
+      }
+      if (target !== undefined) {
+        const normalizedTarget = Number(target);
+        if (Number.isNaN(normalizedTarget)) {
+          return res.status(400).json({ message: 'Target must be a valid number' });
+        }
+        goal.target = normalizedTarget;
+      }
+      if (deadline !== undefined) goal.deadline = deadline || null;
+
+      if (weightage !== undefined) {
+        const normalizedWeightage = Number(weightage);
+        if (Number.isNaN(normalizedWeightage) || normalizedWeightage < 10) {
+          return res.status(400).json({ message: 'Minimum weightage per individual goal is 10%' });
+        }
+
+        const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $ne: 'Archived' } });
         const totalWeightage = otherGoals.reduce((sum, item) => sum + Number(item.weightage || 0), 0);
         if (totalWeightage + normalizedWeightage > 100) {
           return res.status(400).json({ message: "This employee's goal sheet cannot exceed 100% weightage" });
@@ -353,6 +409,11 @@ export const createSharedGoals = async (req, res) => {
 
     if (!recipients.some((recipient) => String(recipient.employeeId) === String(primaryOwnerId))) {
       return res.status(400).json({ message: 'Primary owner must be one of the shared goal recipients' });
+    }
+
+    const recipientIds = recipients.map((recipient) => String(recipient.employeeId || ''));
+    if (new Set(recipientIds).size !== recipientIds.length) {
+      return res.status(400).json({ message: 'Each shared goal recipient must be selected only once' });
     }
 
     const sharedGroupId = crypto.randomUUID();
@@ -424,6 +485,54 @@ export const createSharedGoals = async (req, res) => {
   }
 };
 
+export const createSharedGoalObjection = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { type, comment } = req.body; // type: 'remove'|'change'
+
+    const goal = await Goal.findById(id);
+    if (!goal) return res.status(404).json({ message: 'Goal not found' });
+
+    if (!goal.isShared) return res.status(400).json({ message: 'Objections apply only to shared goals' });
+
+    if (!goal.employeeId.equals(req.user.id)) {
+      return res.status(403).json({ message: 'Only a recipient can file an objection for their shared allocation' });
+    }
+
+    if (!['remove', 'change'].includes(type)) {
+      return res.status(400).json({ message: 'Invalid objection type' });
+    }
+
+    await AuditLog.create({
+      goalId: goal._id,
+      action: 'SHARED_GOAL_OBJECTION',
+      by: req.user.id,
+      role: req.user.role,
+      comment: `${type.toUpperCase()}: ${comment || ''}`,
+      before: toSnapshot(goal),
+      after: null,
+    });
+
+    // Notify admins to handle the objection
+    const admins = await User.find({ role: 'Admin' }).select('_id').lean();
+    const adminIds = admins.map((a) => a._id);
+    if (adminIds.length > 0) {
+      await notifyUsers(adminIds, {
+        type: 'shared-goal-objection',
+        title: 'Shared goal objection filed',
+        message: `${req.user.fullName || req.user.username} requested ${type} on shared goal: ${goal.title}`,
+        link: `/dashboard/goals/${goal._id}`,
+        metadata: { goalId: goal._id, objectionType: type },
+      });
+    }
+
+    return res.status(201).json({ message: 'Objection filed; admins notified' });
+  } catch (error) {
+    console.error('Create objection error:', error);
+    return res.status(500).json({ message: 'Server error while filing objection' });
+  }
+};
+
 export const getGoals = async (req, res) => {
   try {
     const visibleEmployeeIds = await getVisibleEmployeeIds(req.user);
@@ -456,6 +565,42 @@ export const updateGoalStatus = async (req, res) => {
     const isPrivileged = ['Manager', 'Admin'].includes(req.user.role);
     const before = toSnapshot(goal);
 
+    if (status === 'Archived') {
+      const isOwner = goal.employeeId.equals(req.user.id);
+      if (!isOwner && req.user.role !== 'Admin') {
+        return res.status(403).json({ message: 'You can only archive your own goals' });
+      }
+
+      if (goal.isLocked && req.user.role !== 'Admin') {
+        return res.status(400).json({ message: 'Goal is locked. Ask an admin to unlock it before archiving.' });
+      }
+
+      if (goal.status === 'Submitted') {
+        return res.status(400).json({ message: 'Submitted goals must be approved or returned for rework before archiving' });
+      }
+
+      goal.status = 'Archived';
+      goal.archivedAt = new Date();
+      goal.isLocked = false;
+      goal.lockedAt = null;
+      goal.lockedBy = null;
+      goal.approvedBy = undefined;
+      goal.approvalDate = undefined;
+
+      await goal.save();
+
+      await logGoalAudit({
+        goal,
+        action: 'GOAL_ARCHIVED',
+        user: req.user,
+        comment,
+        before,
+        after: toSnapshot(goal),
+      });
+
+      return res.json({ message: 'Goal archived successfully', goal: normalizeGoal(goal) });
+    }
+
     if (isEmployee) {
       if (!goal.employeeId.equals(req.user.id)) {
         return res.status(403).json({ message: 'You can only submit your own goals' });
@@ -473,7 +618,7 @@ export const updateGoalStatus = async (req, res) => {
         return res.status(403).json({ message: 'Employees can only submit goals' });
       }
 
-      const employeeGoals = await Goal.find({ employeeId: req.user.id });
+      const employeeGoals = await Goal.find({ employeeId: req.user.id, status: { $ne: 'Archived' } });
       const totalWeightage = employeeGoals.reduce((sum, item) => sum + Number(item.weightage || 0), 0);
       if (totalWeightage !== 100) {
         const delta = 100 - totalWeightage;
@@ -519,7 +664,7 @@ export const updateGoalStatus = async (req, res) => {
           return res.status(400).json({ message: 'Minimum weightage per individual goal is 10%' });
         }
 
-        const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id } });
+        const otherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $ne: 'Archived' } });
         const totalWeightage = otherGoals.reduce((sum, item) => sum + Number(item.weightage || 0), 0);
         if (totalWeightage + normalizedWeightage > 100) {
           return res.status(400).json({ message: "This employee's goal sheet cannot exceed 100% weightage" });
@@ -529,7 +674,7 @@ export const updateGoalStatus = async (req, res) => {
       }
 
       if (status === 'Approved') {
-        const allOtherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id } });
+        const allOtherGoals = await Goal.find({ employeeId: goal.employeeId, _id: { $ne: goal._id }, status: { $ne: 'Archived' } });
         const projectedTotalWeightage = allOtherGoals.reduce((sum, item) => sum + Number(item.weightage || 0), 0) + Number(goal.weightage || 0);
         if (projectedTotalWeightage !== 100) {
           return res.status(400).json({

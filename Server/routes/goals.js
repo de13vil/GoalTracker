@@ -2,6 +2,7 @@ import express from 'express';
 import {
 	createGoal,
 	createSharedGoals,
+	createSharedGoalObjection,
 	getGoals,
 	updateGoal,
 	updateGoalStatus,
@@ -19,6 +20,7 @@ router.post('/', createGoal);
 router.post('/shared', requireRole('Manager', 'Admin'), createSharedGoals);
 router.patch('/:id', updateGoal);
 router.patch('/:id/status', updateGoalStatus);
+router.post('/:id/objection', createSharedGoalObjection);
 router.patch('/:id/unlock', requireRole('Admin'), unlockGoal);
 router.get('/:id/audit', getAuditLogs);
 

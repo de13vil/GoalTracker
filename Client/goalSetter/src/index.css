@@ -1,7 +1,18 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap');
 
 @layer base {
   body {
-    @apply bg-white text-gray-900 font-sans;
+    @apply text-gray-900 antialiased;
+    font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    background: #f8fafc;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: 'Sora', 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.02em;
   }
 }

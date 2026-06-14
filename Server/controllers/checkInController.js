@@ -32,7 +32,7 @@ const normalizeCheckIn = (item) => {
 
 export const createCheckIn = async (req, res) => {
   try {
-    const { goalId, quarter, plannedTarget = 0, actualAchievement = 0, completionDate = null, comment = '' } = req.body;
+    const { goalId, quarter, actualAchievement = 0, completionDate = null, comment = '' } = req.body;
 
     if (!goalId || !quarter) {
       return res.status(400).json({ message: 'goalId and quarter are required' });
@@ -72,6 +72,7 @@ export const createCheckIn = async (req, res) => {
     }
 
     const normalizedCompletionDate = completionDate ? new Date(completionDate) : null;
+    const plannedTarget = Number(goal.target || 0);
     const progressScore = computeProgressScore(goal, actualAchievement, normalizedCompletionDate, plannedTarget);
 
     const checkIn = await CheckIn.findOneAndUpdate(
@@ -79,7 +80,7 @@ export const createCheckIn = async (req, res) => {
       {
         goalId,
         quarter,
-        plannedTarget: Number(plannedTarget),
+        plannedTarget,
         actualAchievement: Number(actualAchievement),
         completionDate: normalizedCompletionDate,
         progressScore,
